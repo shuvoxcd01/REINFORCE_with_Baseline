@@ -1,6 +1,7 @@
 import os
 import statistics
 
+import numpy as np
 import tensorflow as tf
 
 
@@ -9,9 +10,10 @@ class ReinforceWithBaseline:
         self.environment = environment
         self.observation_shape = self.environment.get_observation_shape()
         self.num_actions = self.environment.get_num_actions()
-        self.alpha_theta = 0.01
-        self.alpha_w = 0.01
+        self.alpha_theta = 0.001
+        self.alpha_w = 0.001
         self.discount_factor = 1
+        self.eps = np.finfo(np.float32).eps.item()
         self.load_model_path = load_model_path
         self.save_model_path = save_model_path
         self.summary_writer = summary_writer
@@ -75,17 +77,16 @@ class ReinforceWithBaseline:
             )
 
     def get_action(self, observation):
-        action_probs = self.policy(observation)[0]
-        action = tf.argmax(action_probs).numpy()
+        action_probs = self.policy(observation)[0].numpy()
+        action = np.random.choice(a=self.num_actions, p=action_probs)
 
         return action
 
-    @staticmethod
-    def normalize_returns(returns):
+    def normalize_returns(self, returns):
         mean = statistics.mean(returns)
         stdev = statistics.stdev(returns)
 
-        normalized_returns = [(x - mean) / stdev for x in returns]
+        normalized_returns = [(x - mean) / (stdev + self.eps) for x in returns]
 
         return normalized_returns
 
